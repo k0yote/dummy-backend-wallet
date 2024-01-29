@@ -4,20 +4,23 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/k0yote/dummy-wallet/util"
 )
 
 type createWalletRequest struct {
-	UUID string `json:"uuid"`
+	UUID string `json:"uuid" binding:"required"`
 }
 
 type walletResponse struct {
 	PrivateKey string `json:"privateKey"`
+	PublicKey  string `json:"publicKey"`
 	AccountID  string `json:"accountId"`
 }
 
-func newWalletResponse(privateKey, accountID string) walletResponse {
+func newWalletResponse(privateKey, publicKey, accountID string) walletResponse {
 	return walletResponse{
 		PrivateKey: privateKey,
+		PublicKey:  publicKey,
 		AccountID:  accountID,
 	}
 }
@@ -29,6 +32,13 @@ func (server *Server) createWallet(ctx *gin.Context) {
 		return
 	}
 
-	//TODO: implement
+	keyInfo, err := util.GenerateKeyInfo(server.config)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
 
+	}
+
+	resp := newWalletResponse(keyInfo.PrivateKey, keyInfo.PublicKey, keyInfo.AccountID)
+	ctx.JSON(http.StatusOK, resp)
 }

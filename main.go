@@ -1,10 +1,11 @@
 package main
 
 import (
-	"fmt"
+	"encoding/hex"
 	"os"
 	"time"
 
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/k0yote/dummy-wallet/api"
 	"github.com/k0yote/dummy-wallet/util"
 	"github.com/pquerna/otp"
@@ -30,33 +31,22 @@ func main() {
 	config, err := util.LoadConfig(".")
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to load config")
-
 	}
 
 	if config.Environment == "development" {
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 	}
 
-	// FIXME: start from here, move into api
-	passcode, err := util.GetPassCode(config, "yjmk0yote@gmail.com", 600)
+	// just for testing purposes - SSS
+	privateKey, err := crypto.GenerateKey()
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to get passcode")
+		log.Fatal().Err(err).Msg("cannot generate private key")
 	}
 
-	util.SendEmail(config, "yjmk0yote@gmail.com", passcode)
+	privateKeyBytes := crypto.FromECDSA(privateKey)
 
-	entropy, err := util.GenerateRandomBytes(config, 16)
-	if err != nil {
-		panic(err)
-	}
+	util.GenerateSharedSecret(config, hex.EncodeToString(privateKeyBytes))
 
-	keyInfo, err := util.GenerateKeyInfo(entropy)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Printf("keyInfo: %+v\n", keyInfo)
-	// til to end
 	runGinServer(config)
 }
 

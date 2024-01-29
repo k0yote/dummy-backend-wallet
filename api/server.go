@@ -22,7 +22,10 @@ func NewServer(config util.Config) (*Server, error) {
 func (server *Server) setupRouter() {
 	router := gin.Default()
 
+	router.GET("/heartbeat", server.heartbeat)
 	router.POST("/generate/wallet", server.createWallet)
+	router.POST("/passwordless/init", server.initialize)
+	router.POST("/passwordless/authenticate", server.authenticate)
 	server.router = router
 }
 
