@@ -1,63 +1,55 @@
 package main
 
 import (
-	"encoding/hex"
+	"context"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/k0yote/dummy-wallet/api"
-	"github.com/k0yote/dummy-wallet/util"
-	"github.com/pquerna/otp"
-	"github.com/pquerna/otp/totp"
+	"github.com/gin-gonic/gin"
+	"github.com/k0yote/dummy-wallet/api/route"
+	"github.com/k0yote/dummy-wallet/bootstrap"
+	"github.com/k0yote/dummy-wallet/container"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
-func GeneratePassCode(secret string) string {
-	passcode, err := totp.GenerateCodeCustom(secret, time.Now(), totp.ValidateOpts{
-		Period:    300,
-		Skew:      1,
-		Digits:    otp.DigitsSix,
-		Algorithm: otp.AlgorithmSHA512,
-	})
-	if err != nil {
-		panic(err)
-	}
-	return passcode
-}
-
 func main() {
-	config, err := util.LoadConfig(".")
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to load config")
-	}
 
-	if config.Environment == "development" {
+	app := bootstrap.App()
+	mongo := app.Mongo.Database(app.Config.MongoDBDbname)
+	container := container.NewContainer(mongo, app.Redis, app.Config)
+	defer app.CloseDBConnection()
+
+	if app.Config.Environment == "development" {
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 	}
 
-	// just for testing purposes - SSS
-	privateKey, err := crypto.GenerateKey()
-	if err != nil {
-		log.Fatal().Err(err).Msg("cannot generate private key")
+	handler := gin.Default()
+
+	route.Setup(container, handler)
+
+	srv := &http.Server{
+		Addr:    app.Config.HTTPServerAddress,
+		Handler: handler,
 	}
 
-	privateKeyBytes := crypto.FromECDSA(privateKey)
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal().Err(err).Msgf("cannot start server on address: %v\n", app.Config.HTTPServerAddress)
+		}
+	}()
 
-	util.GenerateSharedSecret(config, hex.EncodeToString(privateKeyBytes))
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Info().Msgf("Shutting down server...: %v\n", app.Config.HTTPServerAddress)
 
-	runGinServer(config)
-}
-
-func runGinServer(config util.Config) {
-	server, err := api.NewServer(config)
-	if err != nil {
-		log.Fatal().Err(err).Msg("cannot create server")
-	}
-
-	err = server.Start(config.HTTPServerAddress)
-	if err != nil {
-		log.Fatal().Err(err).Msg("cannot start server")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Error().Err(err).Msgf("Server forced to shutdown: %v\n", err)
 	}
 }

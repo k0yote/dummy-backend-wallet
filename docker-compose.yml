@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  wallet-mongodb:
+    image: mongo:6.0
+    container_name: mongodb-server
+    restart: unless-stopped
+    env_file: app.env
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=$MONGODB_USERNAME
+      - MONGO_INITDB_ROOT_PASSWORD=$MONGODB_PASSWORD
+    ports:
+      - "$MONGODB_PORT:$MONGODB_PORT"
+    volumes:
+      - dbdata:/data/db
+  wallet-redis:
+    image: redis:latest
+    container_name: cache-server
+    restart: unless-stopped
+    env_file: app.env
+    ports:
+      - "$REDIS_PORT:6379"
+    expose:
+      - "$REDIS_PORT"
+    volumes:
+      - dbdata:/data/rdb
+volumes:
+  dbdata:

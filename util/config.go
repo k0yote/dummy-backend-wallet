@@ -18,7 +18,22 @@ type Config struct {
 	PassCodeExpirePeriod int    `mapstructure:"PASSCODE_EXPIRE_PERIOD"`
 	KeyStringPhrase      string `mapstructure:"KEY_STRING_PHRASE"`
 	KeySecretShares      int    `mapstructure:"KEY_SECRET_SHARES"`
-	KeyThresholdShares   int    `mapstructure:"KEY_THREDHOLD_SHARES"`
+	KeyThresholdShares   int    `mapstructure:"KEY_THRESHOLD_SHARES"`
+	PrivkeyPath          string `mapstructure:"PRIVATE_KEY_FULL_PATH"`
+	PubKeyPath           string `mapstructure:"PUBLICKEY_KEY_FULL_PATH"`
+	IssuerBaseURL        string `mapstructure:"ISSUER_BASE_URL"`
+	BasicAuthUsername    string `mapstructure:"BASIC_AUTH_USERNAME"`
+	BasicAuthPassword    string `mapstructure:"BASIC_AUTH_PASSWORD"`
+	RedisHost            string `mapstructure:"REDIS_HOST"`
+	RedisPort            string `mapstructure:"REDIS_PORT"`
+	RedisPassword        string `mapstructure:"REDIS_PASSWORD"`
+	RedisDbname          int    `mapstructure:"REDIS_DBNAME"`
+	MongoDBProtocol      string `mapstructure:"MONGODB_PROTOCOL"`
+	MongoDBHost          string `mapstructure:"MONGODB_HOST"`
+	MongoDBUsername      string `mapstructure:"MONGODB_USERNAME"`
+	MongoDBPassword      string `mapstructure:"MONGODB_PASSWORD"`
+	MongoDBDbname        string `mapstructure:"MONGODB_DBNAME"`
+	MongoDBPort          string `mapstructure:"MONGODB_PORT"`
 }
 
 // LoadConfig reads configuration from file or environment variables.
